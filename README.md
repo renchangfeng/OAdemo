@@ -1,2 +1,2 @@
 # OAdemo
-一个demo
+以SSM框架搭建的项目
