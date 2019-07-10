@@ -1,0 +1,103 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mvc="http://www.springframework.org/schema/mvc"
+xmlns:context="http://www.springframework.org/schema/context"
+xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+xsi:schemaLocation="http://www.springframework.org/schema/beans 
+http://www.springframework.org/schema/beans/spring-beans-3.2.xsd 
+http://www.springframework.org/schema/mvc 
+http://www.springframework.org/schema/mvc/spring-mvc-3.2.xsd 
+http://www.springframework.org/schema/context 
+http://www.springframework.org/schema/context/spring-context-3.2.xsd 
+http://www.springframework.org/schema/aop 
+http://www.springframework.org/schema/aop/spring-aop-3.2.xsd 
+http://www.springframework.org/schema/tx 
+http://www.springframework.org/schema/tx/spring-tx-3.2.xsd">
+
+
+   <!-- 
+         功能：扫描指定包的注解符号 
+         说明：use-default-filters属性：表示是否使用扫描器默认扫描指定包下的全部注解，
+                  默认值为true：表示使用扫描器扫描指定包及其子包下的由<context:include-fliter>子标签指定的注解，
+                                         以及其它所有注解（如：@Controller、@Service等等），当然不包括<context:exclude>子标签的指定的注解
+        false：表示只让扫描器扫描<context:include-fliter>子标签指定的注解
+        
+        本例说明： 由于use-default-filters属性设置为"false"，则只扫描com.controller包及其子包下的所有类中的@Controller注解和@ControllerAdvice注解，
+                         其它注解不扫描。
+         
+   -->
+   <context:component-scan base-package="com.controller" use-default-filters="false">
+      <context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+      <context:include-filter type="annotation" expression="org.springframework.web.bind.annotation.ControllerAdvice"/>
+   </context:component-scan>
+   
+   <!-- 注解方式的处理器映射器及处理器适配器 -->
+   <mvc:annotation-driven conversion-service="conversionService">
+      
+   </mvc:annotation-driven> 
+
+   <!-- Spring集成Spring MVC后对于静态资源过滤配置有如下两种方法 -->
+   <!-- 
+     方案一：使用<mvc:resources.../>标签映射静态资源
+     说明：如果Spring集成SpringMVC，并且SpringMVC启动了RESTFul风格的url，则使用<mvc:resources.../>标签映射静态资源时，
+              启动Web应用服务器（Tomcat），会抛出：org.springframework.core.convert.ConverterNotFoundException: No converter found capable of converting from type java.lang.String to type org.springframework.core.io.Resource
+              但是不会影响程序的运行和使用。
+    --> 
+   <!-- 
+   <mvc:resources location="/js/" mapping="/js/**"/>
+   <mvc:resources location="/css/" mapping="/css/**"/>
+   <mvc:resources location="/images/" mapping="/images/**"/>
+   -->
+  <!-- 
+     方案二：使用<mvc:default-servlet-handler />标签处理静态资源
+     说明：在springMVC配置文件中配置<mvc:default-servlet-handler />后，会在Spring MVC上下文中定义一个
+       org.springframework.web.servlet.resource.DefaultServletHttpRequestHandler，它会像一个检查员，对进入DispatcherServlet（中央控制器）的URL进行筛查，
+              如果发现是静态资源的请求，就将该请求转由Web应用服务器默认的Servlet处理，如果不是静态资源的请求，才由DispatcherServlet（中央控制器）继续处理。
+            注意：一般Web应用服务器默认的Servlet名称是"default"，因此DefaultServletHttpRequestHandler可以找到它。如果你所有的Web应用服务器的默认Servlet名称不是"default"，
+            则需要通过default-servlet-name属性显示指定<mvc:default-servlet-handler default-servlet-name="所使用的Web服务器默认使用的Servlet名称" />
+    -->
+     
+   <mvc:default-servlet-handler />
+ 
+   <!-- 
+       方案三：不使用RESTFul风格的url
+    -->
+    
+   <!-- 视图解析器 -->
+   <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+	  <!--  
+	  <property name="prefix" value="/WEB-INF/"/>
+      <property name="suffix" value=".jsp"/>
+      -->
+   </bean> 
+   
+   <!-- 自定义类型转换器：日期类型转换 -->
+   <bean id="conversionService" class="org.springframework.format.support.FormattingConversionServiceFactoryBean">
+	<!-- 转换器 -->
+	<property name="converters">
+	<list>
+	      <!-- 自定义的日期类型转换器 -->
+	      <bean class="com.converter.CustomDateConverter"/>
+	</list>
+	</property>
+   </bean>
+
+    <!-- 文件上传 -->
+	<bean id="multipartResolver"
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<!-- 设置上传文件的最大尺寸为5MB -->
+		<property name="maxUploadSize">
+			<value>5242880</value>
+		</property>
+	</bean>
+
+   <!-- 拦截器配置 -->
+   
+    <mvc:interceptors>
+	 <mvc:interceptor>
+	      <mvc:mapping path="/**/*.action"/>
+	      <bean class="com.interceptor.PrivilegeInterceptor"/>
+	 </mvc:interceptor>
+    
+    </mvc:interceptors>
+    
+</beans>

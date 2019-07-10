@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dao.mapper.RoleCustomMapper">
+	
+	   <!-- 角色基本信息 -->
+	   <resultMap id="roleBasicInfo" type="RoleCustom">
+	        <id column="rid" property="rid"/>
+	        <result column="v_rname" property="rname"/>
+	        <result column="v_rmemo" property="rmemo"/>
+	   </resultMap>
+	   
+	   <!-- 查询角色信息连带 角色包含权限 -->
+	   <resultMap id="roleAndPrivilegeInfo" type="RoleCustom" extends="roleBasicInfo">
+	      <collection property="privilegeList" ofType="PrivilegeCustom">
+	          <id column="pid" property="id"/>
+	          <result column="v_pname" property="privilegeName"/>
+	      </collection>
+	   </resultMap>
+	   
+	   <!-- 查询所有角色 -->
+	   <select id="searchAllRoleInfo" resultMap="roleBasicInfo">
+	       select i_rid rid,v_rname,v_rmemo
+	         from t_role
+	   </select>
+	   
+	   <!-- 保存角色 （新建） -->
+	   <insert id="saveNewRoleInfo" parameterType="RoleCustom">
+	        insert into t_role(v_rname,v_rmemo)
+	        value(#{rname},#{rmemo})
+	   </insert>
+	   
+	   <!-- 修改角色  -->
+	   <update id="updateRoleInfo" parameterType="RoleCustom">
+	        update t_role
+	        set v_rname = #{rname},v_rmemo = #{rmemo}
+	        where i_rid = #{rid}
+	   </update>
+	   
+	   <!-- 查询修改角色信息，用于修改 -->
+	    <select id="selectForUpdateRoleInfo" parameterType="int" resultMap="roleBasicInfo">
+	        select v_rname,v_rmemo
+	         from t_role
+	         where i_rid = #{rid}
+	    </select>
+	    
+	    <!-- 删除角色绑定权限 -->
+	    <delete id="deleteRoleAndPrivilege" parameterType="int" >
+	         delete from t_role_privilege  
+ 				where i_rid = #{rid}
+	    </delete>
+	    
+	   <!-- 删除角色 -->
+	   <delete id="deleteRoleInfo" parameterType="int">
+	        delete from t_role
+	        where i_rid = #{id}
+	   </delete>
+	   
+	   <!--根据角色id查询角色信息：角色信息一级其所拥有的权限信息 用于 分配角色-权限 页面使用-->
+	   <select id="searchRoleAndPrivilegeInfo" parameterType="int" resultMap="roleAndPrivilegeInfo">
+	       select tr.i_rid rid ,tr.v_rname,tr.v_rmemo,tp.i_id pid,tp.v_pname
+	         from t_role tr LEFT OUTER join t_role_privilege trp on(tr.i_rid = trp.i_rid) 
+	              LEFT OUTER join t_privilege tp on(trp.i_pid = tp.i_id)
+	        where tr.i_rid = #{rid}
+	   </select>
+	   
+	   <!--  保存角色-权限绑定信息  Map集合中的key存储的是权限id，value存储的是角色id  -->
+	   <insert id="saveRoleAndPrivilegeInfoByMap" parameterType="java.util.Map">
+	     insert into t_role_privilege(i_rid,i_pid) values
+	     <foreach collection="roleMap" index="key" item="value" separator=",">
+	         (#{value},#{key})
+	     </foreach>
+	   </insert>
+	   
+	   
+</mapper>

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dao.mapper.PrivilegeCustomMapper">
+	
+	 <!-- 映射权限的基本信息 -->
+	 <resultMap id="privilegeBasicInfo" type="PrivilegeCustom">
+	   <id column="pid" property="id"/>
+      <result column="v_pname" property="privilegeName"/>
+      <result column="v_url" property="url"/>
+      <result column="i_parentid" property="parentId"/>
+      <result column="i_level" property="level"/>
+      <result column="i_leaf" property="isLeaf"/>
+      <result column="i_public" property="isPublic"/>
+      <result column="v_pic" property="pic"/>
+	 </resultMap>
+	 
+	 <!-- 查询当前节点信息 关联其父节点与子节点信息 -->
+	 <resultMap id="searchNodeInfoAboveBoth" type="PrivilegeCustom" extends="privilegeBasicInfo">
+	     <!-- 映射父节点 -->
+	     <association property="parent" javaType="PrivilegeCustom" select="searchParentNodeInfo" column="i_parentid" fetchType="eager">
+	     
+	     </association>
+	     
+	     <!-- 映射子结点 -->
+	     <collection property="childrenList" ofType="PrivilegeCustom" select="searchChildrenNodeInfo" column="pid" fetchType="eager">
+	     
+	     </collection>
+	 </resultMap>
+	 
+	 <!-- 查询一级节点和关联的二级节点 -->
+	 <resultMap id="oneLevelAndTwoLevelInfo" type="PrivilegeCustom"  extends="privilegeBasicInfo">
+	       <!-- 映射子结点 -->
+	     <collection property="childrenList" ofType="PrivilegeCustom" select="searchChildrenSelfNodeInfo" column="pid" fetchType="eager">
+	     
+	     </collection>
+	 </resultMap>
+	 
+	 <!-- 查询当前节点的父节点 -->
+	 <select id="searchParentNodeInfo" parameterType="int" resultMap="privilegeBasicInfo">
+	        select i_id pid, v_pname, v_url, i_parentid, i_level, i_leaf, i_public, v_pic
+		      from t_privilege
+		     where i_id=#{parentId} 
+	 </select>
+	 
+	 <!-- 查询当前节点的子节点(递归查询) -->
+	 <select id="searchChildrenNodeInfo" parameterType="int" resultMap="searchNodeInfoAboveBoth">
+	        select i_id pid, v_pname, v_url, i_parentid, i_level, i_leaf, i_public, v_pic
+		      from t_privilege
+		     where i_parentid=#{id}
+	 </select>
+	 
+	 <!-- 查询当前节点的子节点(只查询当前节点的信息，不查询当前节点的子节点) -->
+	 <select id="searchChildrenSelfNodeInfo" parameterType="int" resultMap="privilegeBasicInfo">
+	        select i_id pid, v_pname, v_url, i_parentid, i_level, i_leaf, i_public, v_pic
+		      from t_privilege
+		     where i_parentid=#{id}
+	 </select>
+	 
+	 <!-- 查询 根节点，用于所有权限全部加载 -->
+	 <select id="searchNodePointInfo" resultMap="searchNodeInfoAboveBoth">
+	     select i_id pid, v_pname, v_url, i_parentid, i_level, i_leaf, i_public, v_pic
+	       from t_privilege
+	      where i_parentid = 0;
+	 </select>
+	 
+	 <!-- 查询所有一级节点，构造左侧菜单使用 -->
+	 <select id="searchAllNodeOnePointInfo" resultMap="oneLevelAndTwoLevelInfo">
+	 		 select i_id pid, v_pname, v_url, i_parentid, i_level, i_leaf, i_public, v_pic
+		       from t_privilege
+		      where i_level = 1;
+	 </select>
+	 
+	 <!-- 查询公共权限 -->
+	 <select id="searchAllPublicPrivilegeInfo" resultMap="privilegeBasicInfo">
+	         select i_id pid, v_pname, v_url, i_parentid, i_level, i_leaf, i_public, v_pic
+	           from t_privilege
+	          where i_public = 1;
+	 </select>
+</mapper>

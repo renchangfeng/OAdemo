@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dao.mapper.KnowledgeFolderCustomMapper">
+	
+	<!-- 定义resultMap:定义基本信息 -->
+	<resultMap  id="basicKnowledgeFolderInfo" type="KnowledgeFolderCustom">
+	    <id column="folderid" property="id"/>
+	    <result column="v_foldername" property="folderName"/>
+	    <result column="v_foldermemo" property="folderMemo"/>
+	    <result column="i_level" property="level"/>
+	    <result column="i_leaf" property="isLeaf"/>
+	    <result column="i_parentid" property="parentId"/>
+	</resultMap>
+	
+	 <!-- 定义resultMap：加载当前节点、父节点、子节点的信息 -->
+    <resultMap id="knowledgeAndParentAndChildrenInfo" type="KnowledgeFolderCustom" extends="basicKnowledgeFolderInfo">
+       <!-- 映射父节点：一对一 -->
+       <association property="parent" javaType="KnowledgeFolderCustom" select="searchParentInfo" column="i_parentid" fetchType="eager">
+       
+       </association>
+    
+       <!-- 映射子节点：一对多 -->
+       <collection property="childrenList" ofType="KnowledgeFolderCustom" select="searchChildrenInfo" column="folderid" fetchType="eager">
+       
+       </collection>
+       
+    </resultMap>
+    
+    <!-- 查询父节点 -->
+    <select id="searchParentInfo" parameterType="int" resultMap="basicKnowledgeFolderInfo">
+       select i_id folderid, v_foldername, v_foldermemo, i_level, i_leaf,i_parentid 
+         from t_knowledgefolder
+        where i_id=#{parentid}
+    </select>
+    
+    <!-- 查询子节点 -->
+    <select id="searchChildrenInfo" parameterType="int" resultMap="knowledgeAndParentAndChildrenInfo">
+       select i_id folderid, v_foldername, v_foldermemo, i_level, i_leaf,i_parentid 
+         from t_knowledgefolder
+        where i_parentid=#{kid}
+    </select>
+    
+    <!-- 查询根结点 -->
+    <select id="searchRootInfo" resultMap="knowledgeAndParentAndChildrenInfo">
+       select i_id folderid, v_foldername, v_foldermemo, i_level, i_leaf,i_parentid 
+         from t_knowledgefolder
+        where i_level=0
+    </select>
+    
+    <!-- 保存目录信息 -->
+    <insert id="saveFolderInfo" parameterType="KnowledgeFolderCustom">
+        insert into t_knowledgefolder(v_foldername, v_foldermemo, i_level, i_leaf,i_parentid)
+                               values(#{folderName}, #{folderMemo}, #{level},#{isLeaf}, #{parentId})
+    </insert>
+</mapper>

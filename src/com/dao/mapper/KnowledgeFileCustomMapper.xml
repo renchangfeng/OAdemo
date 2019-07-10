@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dao.mapper.KnowledgeFileCustomMapper">
+
+
+	 <!-- 定义resultMap：定义基本信息 -->
+    <resultMap id="basicKnowledgeFileInfo" type="KnowledgeFileCustom">
+       <id column="fileid" property="id"/>
+       <result column="v_realname" property="realName"/>
+       <result column="v_originname" property="originName"/>
+       <result column="v_encodename" property="encodeName"/>
+       <result column="v_filepath" property="filePath"/>
+       <result column="v_filesize" property="fileSize"/>
+       <result column="v_filecreatetime" property="fileCreatetime"/>
+       <result column="v_filepic" property="filePic"/>
+       <result column="v_filememo" property="fileMemo"/>
+       <result column="i_folderid" property="folderId"/>
+    </resultMap>
+    
+    <!-- 定义resultMap：映射文件及所属目录信息 -->
+    <resultMap id="knowledgeFileAndFolderInfo" type="KnowledgeFileCustom" extends="basicKnowledgeFileInfo">
+       <!-- 映射所属目录：一对一 -->
+       <association property="folder" javaType="KnowledgeFolderCustom">
+          <id column="folderid" property="id"/>
+          <result column="v_foldername" property="folderName"/>
+       </association>
+    </resultMap>
+   
+   
+    <!-- 根据目录id查询该目录的所属文件信息 -->
+    <select id="searchKnowledgeFileInfoByFolderId" parameterType="int" resultMap="knowledgeFileAndFolderInfo">
+         select tkd.i_id fileid, tkd.v_realname, tkd.v_originname, tkd.v_encodename, tkd.v_filepath, tkd.v_filesize, tkd.v_filecreatetime, tkd.v_filepic, tkd.v_filememo, tkd.i_folderid,
+                tkf.i_id folderid, tkf.v_foldername
+           from t_knowledgefile tkd join t_knowledgefolder tkf on(tkd.i_folderid=tkf.i_id)
+          where tkd.i_folderid=#{folderid}
+    
+    </select>
+   
+    <!-- 保存文件信息 -->
+    <insert id="saveKnowledgeFileInfo" parameterType="KnowledgeFileCustom">
+        insert into t_knowledgefile(v_realname,v_originname,  v_encodename, v_filepath, v_filesize, v_filecreatetime, v_filepic, v_filememo, i_folderid) 
+                             values(#{realName}, #{originName}, #{encodeName}, #{filePath}, #{fileSize}, #{fileCreatetime}, #{filePic}, #{fileMemo}, #{folderId})
+    
+    </insert>
+    
+    
+    <!-- 删除文件信息 -->
+    <delete id="deleteKnowledgeFileInfo" parameterType="int">
+        delete from t_knowledgefile where i_id=#{fileId}   
+    </delete>
+    
+    <!-- 根据文件主键，查询文件基本信息 -->
+    <select id="searchKnowledgeFileInfoById" parameterType="int" resultMap="basicKnowledgeFileInfo">
+         select i_id fileid, v_realname, v_filepath from t_knowledgefile where i_id=#{fileid}
+    </select>
+	
+</mapper>

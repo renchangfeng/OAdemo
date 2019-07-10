@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dao.mapper.UserCustomMapper">
+	
+	 <!-- 映射用户的基本信息 -->
+	  <resultMap id="userBasicInfo" type="UserCustom">
+	     <id column="uid" property="uid"/>
+	     <result column="v_uname" property="uname"/>
+	     <result column="v_loginname" property="loginname"/>
+	     <result column="v_pass" property="pass"/>
+	     <result column="v_sex" property="sex"/>
+	     <result column="v_phone" property="phone"/>
+	     <result column="v_email" property="email"/>
+	     <result column="v_pic" property="pic"/>
+	     <result column="v_memo" property="memo"/>
+	     <result column="i_deptid" property="parentDeptId"/>
+	     <result column="i_admin" property="isAdmin"/>
+	  </resultMap>
+	  
+	  <!-- 映射部门信息以及角色信息 -->
+	  <resultMap id="userDeptInfoAndRoleInfo" type="UserCustom" extends="userBasicInfo">
+	     <!-- 映射部门信息 一对一关联-->
+	     <association property="deptCustom" javaType="DepartmentCustom">
+	        <id column="did" property="id"/>
+	        <result column="dname" property="dname"/>
+
+	     </association>
+	     <!-- 映射角色信息 一对多关联-->
+	     <collection property="roleCustom" ofType="RoleCustom">
+	        <id column="rid" property="rid"/>
+	        <result column="rname" property="rname"/>
+	     </collection>
+	  </resultMap>
+	  
+	  <!-- 映射角色信息 -->
+	  <resultMap id="userOnlyForRoleInfo" type="UserCustom" extends="userBasicInfo">
+	     <!-- 映射角色信息 一对多关联-->
+	     <collection property="roleCustom" ofType="RoleCustom">
+	        <id column="rid" property="rid"/>
+	        <result column="rname" property="rname"/>
+	     </collection>
+	  </resultMap>
+	  
+	  <!-- 查询所有用户信息 (包括部门信息以及角色信息)-->
+	  <select id="searchAllUserInfoAndAllInfo" resultMap="userDeptInfoAndRoleInfo">
+	       select u.i_id uid, u.v_uname, u.v_loginname, u.v_pass, u.v_sex, u.v_phone, u.v_email, u.v_memo, u.i_deptid, u.i_admin,
+	             td.i_id did,td.v_dname dname,tr.i_rid rid,tr.v_rname rname
+	        from t_user u join t_department td on(u.i_deptid = td.i_id)
+            left outer join t_user_role ur on(u.i_id = ur.i_uid) 
+	        left outer join t_role tr on(ur.i_rid = tr.i_rid)
+	        
+	  </select>
+	  
+	  <!-- 用于新建用户信息 -->
+	  <insert id="saveNewUserInfo" parameterType="UserCustom">
+	       insert into t_user(v_uname,v_loginname,v_pass,v_sex,v_phone,v_email,v_memo,i_deptid, i_admin)
+	       values(#{uname},#{loginname},#{pass},#{sex},#{phone},#{email},#{memo},#{parentDeptId},#{isAdmin})
+	  </insert>
+	  
+	  <!-- 检验登录名唯一性 ,是否存在-->
+	  <select id="checkLoginNameForOnly" parameterType="UserCustom" resultType="int">
+	     select count(i_id) from t_user
+	      <where>
+	        <if test="uid == 0">
+	           and v_loginname = #{loginname}
+	        </if>
+	        <if test="uid != 0">
+	           and v_loginname = #{loginname} and i_id != #{uid}
+	        </if>
+	      </where>
+	  </select>
+	  
+	  <!-- 查询用户信息 用于修改 -->
+	  <select id="searchUserInfoByUpdate" parameterType="int" resultMap="userBasicInfo">
+	       select u.i_id uid, u.v_uname, u.v_loginname, u.v_pass, u.v_sex, u.v_phone, u.v_email, u.v_memo, u.i_deptid, u.i_admin
+	         from t_user u
+	        where u.i_id = #{id}
+	  </select>
+	  
+	  <!-- 用于修改用户信息 -->
+	  <update id="updateUserInfoById" parameterType="UserCustom">
+	       update t_user 
+	       set v_uname = #{uname},v_loginname = #{loginname},v_pass = #{pass},v_sex = #{sex},v_phone = #{phone},v_email = #{email},v_memo = #{memo},i_deptid = #{parentDeptId}, i_admin = #{isAdmin}
+	       where i_id=#{uid}
+	  </update>
+	  
+	   <!-- 修改个人信息。用于个人设置 -->
+	  <update id="updatePersonalInfoByUc" parameterType="UserCustom">
+	        update t_user 
+	        set v_uname = #{uname},v_sex = #{sex},v_phone = #{phone},v_email = #{email},v_memo = #{memo}
+	        where i_id=#{uid}
+	  </update>
+	  
+	  <!-- 用于删除用户信息 -->
+	  <delete id="deleteUserInfoById" parameterType="UserCustom">
+	      delete from t_user
+	      where i_id=#{uid}
+	  </delete>
+	  
+	  <!-- 初始化密码 -->
+	  <update id="saveInitPassword" parameterType="UserCustom">
+	        update t_user set v_pass=#{pass} where i_id=#{uid}
+	  </update>
+	  
+	  <!-- 修改密码用于  —— 个人设置里 -->
+	  <update id="updatePasswordInfoByUc" parameterType="UserCustom">
+	        update t_user set v_pass=#{pass} where i_id=#{uid}
+	  </update>
+	  
+	  <!-- 查询用户的角色信息 ，用于分配角色 -->
+	  <select id="searchUserForRolesInfoById" parameterType="int" resultMap="userOnlyForRoleInfo">
+	      select u.i_id uid, u.v_uname, u.v_loginname, u.v_pass, u.v_sex, u.v_phone, u.v_email, u.v_memo, u.i_deptid, u.i_admin,
+	             tr.i_rid rid,tr.v_rname rname
+	        from t_user u left outer join t_user_role ur on(u.i_id = ur.i_uid) 
+	        left outer join t_role tr on(ur.i_rid = tr.i_rid)
+	        where u.i_id = #{id}
+	  </select>
+	  
+	  <!-- 绑定用户————角色信息 -->
+	  <insert id="saveUserAndRoleInfoForMap" parameterType="java.util.Map">
+	      insert into t_user_role(i_uid,i_rid) values
+	      <foreach collection="userRoleList" index="key" item="value" separator=",">
+	         (#{value},#{key})
+	      </foreach>
+	  </insert>
+	  
+	  <!-- 删除用户————角色信息 -->
+	  <delete id="deleteRoleInfoForId" parameterType="int">
+	      delete from t_user_role where i_uid = #{uid}
+	  </delete>
+	  
+	  <resultMap id="userAndRoleAndPrivilegeInfo" type="UserCustom" extends="userBasicInfo">
+	  
+	       <association property="deptCustom" javaType="DepartmentCustom">
+	            <id column="did" property="id"/>
+          		 <result column="v_dname" property="dname"/>
+	       </association>
+       
+	       <collection property="roleCustom" ofType="RoleCustom">
+	           <id column="rid" property="rid"/>
+	           <result column="v_rname" property="rname"/>
+	           
+	           <collection property="privilegeList" ofType="PrivilegeCustom">
+	               <id column="pid" property="id"/>
+	               <result column="v_pname" property="privilegeName"/>
+	               <result column="v_url" property="url"/>
+	               <result column="p_parentid" property="parentId"/>
+	               <result column="plevel" property="level"/>
+	               <result column="i_leaf" property="isLeaf"/>
+	               <result column="i_public" property="isPublic"/>
+	               <result column="ppic" property="pic"/>
+	           </collection>
+	       </collection>
+	  </resultMap>
+	  
+	  <!-- 系统登陆 -->
+	  <select id="syslogin" parameterType="UserVO" resultMap="userAndRoleAndPrivilegeInfo">
+	         select u.i_id uid, u.v_uname, u.v_loginname, u.v_pass, u.v_sex, u.v_phone, u.v_email, u.v_pic, u.v_memo, u.i_deptid, u.i_admin,
+              td.i_id did,td.v_dname, tr.i_rid rid, tr.v_rname,
+              tp.i_id pid, tp.v_pname, tp.v_url, tp.i_parentid p_parentid, tp.i_level plevel, tp.i_leaf, tp.i_public, tp.v_pic ppic
+	         from t_user u join t_department td on(u.i_deptid=td.i_id)
+	              join t_user_role ur on(u.i_id=ur.i_uid)
+	              join t_role tr on(ur.i_rid=tr.i_rid)
+	              join t_role_privilege trp on(tr.i_rid=trp.i_rid)
+	              join t_privilege tp on(trp.i_pid=tp.i_id)
+	         where u.v_loginname=#{loginName} and u.v_pass=#{pass}
+	  </select>
+	  
+	 
+	  
+</mapper>

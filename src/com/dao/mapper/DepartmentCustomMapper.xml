@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dao.mapper.DepartmentCustomMapper">
+	 
+	 <!--  部门基础信息resultMap -->
+	 <resultMap id="basicDeptInfo" type="DepartmentCustom">
+	     <id column="i_id" property="id"/>
+	     <result column="v_dname" property="dname" />
+	     <result column="v_memo" property="memo" />
+	     <result column="i_parentid" property="parentDeptId" />
+	     <result column="i_level" property="level" />
+	 </resultMap>
+	 
+	 <!-- 映射当前部门和上级部门 -->
+	 <resultMap id="deptAndParentInfo" type="DepartmentCustom" extends="basicDeptInfo">
+	     <association property="parent" javaType = "DepartmentCustom" select="selectParentInfoByParentId" column="i_parentid" fetchType="eager">
+	       
+	       
+	     </association>
+	 
+	 </resultMap>
+	 
+	 <!-- 映射当前部门和下级部门 -->
+	 <resultMap id="deptAndChildrenInfo" type="DepartmentCustom" extends="basicDeptInfo">
+	 
+	    <collection property="childrenList" ofType="DepartmentCustom"  select="selectChildrenInfoByDeptId" column="i_id" fetchType="eager">
+	    
+	    </collection>
+	    
+	 </resultMap>
+	 
+	 <!-- 映射上级和下级和当前所有部门 -->
+	 <resultMap id="deptAndParentAndChildrenInfo" type="DepartmentCustom" extends="basicDeptInfo">
+	 
+	    <association property="parent" javaType = "DepartmentCustom" select="selectParentInfoByParentId" column="i_parentid" fetchType="eager">
+	       
+	    </association>
+	    
+	    <collection property="childrenList" ofType="DepartmentCustom"  select="selectChildrenInfoByDeptId" column="i_id" fetchType="eager">
+	    
+	    </collection>
+	    
+	 </resultMap>
+	 
+	 <!--  ************************  -->
+	 
+	 <resultMap id="deptAndChildrenInfoForSearchFirstDept" type="DepartmentCustom" extends="basicDeptInfo">
+	 
+	    <collection property="childrenList" ofType="DepartmentCustom"  select="selectChildrenInfoByAllDeptIdForSearch" column="i_id" fetchType="eager">
+	    
+	    </collection>
+	    
+	 </resultMap>
+	 <!-- 以下两个SQL语句用于关联查询 -->
+	 
+	 <select id="selectParentInfoByParentId" parameterType="int" resultMap="basicDeptInfo">
+			    select i_id,v_dname,v_memo,i_parentid,i_level 
+			      from t_department
+			     where i_id = #{parentid}
+	 </select>
+	 <select id="selectChildrenInfoByDeptId" parameterType="int" resultMap="basicDeptInfo">
+			    select i_id,v_dname,v_memo,i_parentid,i_level 
+			      from t_department
+			     where i_parentid = #{deptid}
+	 </select>
+	 
+	 <!--  ************************  -->
+	 
+	 <!-- 查询所有部门信息 -->
+	 
+	 <select id="searchAllDept" resultMap="deptAndParentInfo">
+	      select i_id,v_dname,v_memo,i_parentid,i_level from t_department
+	 </select>
+	 
+	 <select id="searchChildrenDeptByParentId" parameterType ="int" resultMap="deptAndChildrenInfo">
+	            select i_id,v_dname,v_memo,i_parentid,i_level 
+			      from t_department
+			     where i_id = #{id}
+	 </select>
+	 
+	 <!--  **************  -->
+	 
+	 <!-- 下面两个用于查询所以一级部门信息 -->
+	 
+	 <select id="searchAllFirstDeptInformation" resultMap="deptAndChildrenInfoForSearchFirstDept">
+	            select i_id,v_dname,v_memo,i_parentid,i_level 
+			      from t_department
+			     where i_parentid=0;
+	 </select>
+	 
+	 <select id="selectChildrenInfoByAllDeptIdForSearch" parameterType="int" resultMap="deptAndChildrenInfoForSearchFirstDept">
+			    select i_id,v_dname,v_memo,i_parentid,i_level 
+			      from t_department
+			     where i_parentid = #{deptid}
+	 </select>
+	 
+	  <!--  ****************************  -->
+	  
+	  <!-- 查询部门信息，用于新建 -->
+	 <insert id="saveNewDeptInformation" parameterType="DepartmentCustom">
+	        insert into t_department(v_dname,v_memo,i_parentid,i_level)
+	         value(#{dname},#{memo},#{parentDeptId},#{level})
+	 </insert>
+	 
+	 <!-- 修改部门信息 -->
+	 <update id="updateDeptInformation" parameterType="DepartmentCustom">
+	        update t_department 
+	        set v_dname=#{dname},v_memo=#{memo},i_parentid=#{parentDeptId},i_level=#{level}
+	        where i_id=#{id}
+	 </update>
+	 
+	 <!-- 查询部门基本信息，用于修改 -->
+	 <select id="selectbasicDeptInfoForUpdate" parameterType="int" resultMap="basicDeptInfo">
+	          select i_id,v_dname,v_memo,i_parentid,i_level 
+			      from t_department
+			     where i_id=#{id}
+	 </select>
+	 
+	 <!-- 删除部门 -->
+	 <delete id="deleteBasicDept" parameterType="int" >
+	          delete from t_department
+	          where i_id=#{id}
+	 </delete>
+</mapper>

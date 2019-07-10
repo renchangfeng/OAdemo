@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<typeAliases>
+	   <package name="com.po"/>
+	   <package name="com.pojo"/>
+	   <package name="com.vo"/>
+	</typeAliases>
+	
+	<!--  
+	     使用自动扫描器时，mapper.xml文件，如果mapper.xml文件与mapper.java接口在一个目录则此处不用定义mappers 
+	
+	<mappers>
+	    
+		<package name="com.dao.mapper"/>
+	</mappers>
+    -->
+</configuration>

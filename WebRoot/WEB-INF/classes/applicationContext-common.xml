@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" 
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+	         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.2.xsd 
+	         http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.2.xsd 
+	         http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.2.xsd 
+	         http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.2.xsd">
+
+	<!-- 启动注解符号扫描指定的包 -->
+	<context:component-scan base-package="com">
+
+	  
+	  <!-- 让Spring框架的IOC容器不扫描SpringMVC的IOC容器所扫描的注解 -->
+	  <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+	  <context:exclude-filter type="annotation" expression="org.springframework.web.bind.annotation.ControllerAdvice"/>
+	</context:component-scan>
+
+	<!-- 加载属性配置文件 -->
+	<context:property-placeholder location="classpath:db.properties" />
+	
+	<!-- 第一步：配置数据库连接池-->	
+	<!-- 
+	       数据库连接池负责分配、管理和释放数据库连接，它允许应用程序重复使用一个现有的数据库连接，而不是重新建立一个连接，
+	   释放空闲时间超过最大空闲时间的数据库连接来避免因为没有释放数据库连接而引起的数据库连接泄漏。这项技术能明显提高对数据库操作的性能。
+	 -->		
+	<bean id="dataSourceProxool" class="org.logicalcobwebs.proxool.ProxoolDataSource">
+	  <!-- MySQL  -->
+		<property name="driver" value="${jdbc.driver}" />
+		<property name="driverUrl" value="${jdbc.url}"/>
+		<property name="user" value="${jdbc.username}"/>
+		<property name="password" value="${jdbc.password}"/>
+
+		<!--连接池的别名-->   
+		<property name="alias" value="Pool_dbname" />
+		
+    	<!-- 指因未有空闲连接可以分配而在队列中等候的最大请求数,超过这个请求数的用户连接就不会被接受-->
+    	<!--<property name="maximumNewConnections" value="150" />-->
+    	<!-- 
+    	    最少保持的空闲连接数，即：连接池中可用的连接数量。
+    	    如果当前的连接池中的连接少于这个数值，那么新的连接将被建立(假设没有超过最大连接数)。
+    	    例如：我们有3个活动连接2个可用连接，而我们的prototype-count是4,那么数据库连接池将试图建立另外2个连接.
+    	-->
+   		<property name="prototypeCount" value="10" />
+   		<!-- 
+   		   * 允许最大连接数,超过了这个连接，再有请求时，就排在队列中等候，最大的等待请求数由maximum-new-connections决定
+   		   * 即：最大连接数是连接池能申请的最大连接数，如果数据库连接请求超过此数，则后面的数据库连接请求将被加入到等待队列中。
+   		-->
+		<property name="maximumConnectionCount" value="50" />
+		<!-- 最小连接数，即：最小连接数是连接池一直保持的数据库连接数量-->   
+    	<property name="minimumConnectionCount" value="10" />
+    	<!-- 
+    	   注：1、数据库连接池在初始化时将创建一定数量的数据库连接放到连接池中，这些数据库连接的数量是由最小数据库连接数设定的。
+    	          无这些数据库连是否被使用，连接池都将一直保证至少拥有这么多的连接数量。连接池的最大数据库连接数量限定了这个连接池能拥有的最大连接数，
+    	          当应用程序向连接池请求的连接数超过最大连接数量时，这些请求将被加入到等待队列中。
+    	   
+    	      2、如果最小连接数与最大连接数相差太大，那么最先的连接请求将会先得到连接池中的数据库连接，之后超过最小连接数量的连接请求等价于建立一个新的数据库连接。
+    	          但是这些大于最小连接数的数据库连接在使用完毕后不会马上被释放，它将被放到连接池中等待重复使用或是空闲超时后被释放
+    	 -->
+    	
+    	<!-- 一次建立的最大连接数，默认值为：10 -->
+    	<property name="simultaneousBuildThrottle" value="15" />
+    	<!-- 最长连接时间，默认为4小时，一般可以不设置，如果是：0.9.1这个版本，当配置该属性时会抛出异常，请换成0.9.0版本 -->
+    	<!-- <property name="maximumConnectionLifetime" value="14400000" />-->
+    	
+    	<!-- 设置Proxool自动侦测各个连接状态的时间间隔(毫秒)，侦察到空闲的连接就马上回收,超时的销毁。一般可以不设置，如果是：0.9.1这个版本，当配置该属性时会抛出异常，请换成0.9.0版本--> 
+    	<!--<property name="houseKeepingSleepTime" value="90000" />-->
+    	<!-- 
+    	    如果发现了空闲的数据库连接，那么houseKeeper（Proxool中的一个类） 将会用houseKeepingTestSql属性设置的这个SQL语句来测试。
+    	    这个语句最好非常快的被执行，如果没有定义houseKeepingTestSql属性，则测试过程将会被忽略。最好设置
+    	 -->
+    	<property name="houseKeepingTestSql" value="select 1" />
+
+	</bean>
+	<!--用于提高数据库中CLOB、BLOB等字段的存、取效率-->
+	<bean id="lobHandler"
+		class="org.springframework.jdbc.support.lob.DefaultLobHandler"
+		lazy-init="true" /> 
+  <!-- 
+      第二步：配置sqlSessionFactory，这一步就是Spring在集成MyBatis
+     * 该sqlSessionFactory是MyBatis和Spring整合包中SqlSessionFactory的而不是MyBatis中的，
+     * 但是Spring中的sqlSessionFactory类底层调用的还是MyBatis中的SqlSessionFactory
+     * 即MyBatis和Spring整合包中SqlSessionFactory中的SqlSessionFactory是对MyBatis中的SqlSessionFactory进行了封装，我们只需要使用封装后的SessionFactory即可
+     * 如果不使用MyBatis和Spring整合包中的SqlSessionFactory，则项目中在使用的SqlSession，Spring是不会对其进行管理的，
+     * 如：SqlSession的开启、关闭、事务的提交、回滚等。
+     * 从MyBatis和Spring整合包中SqlSessionFactory中获取的Session是绑定到当前线程中的，可以安全使用。    
+  -->	
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSourceProxool" />
+				
+		<!-- 加载MyBatis的全局配置文件:SqlMapConfig.xml -->
+		<property name="configLocation" value="classpath:SqlMapConfig.xml"/>
+	</bean>
+
+  <!-- 
+     第三步：配置事务管理器，配置哪些DataSource或其它与数据库相关的类需要进行事务管理
+     * MyBatis框架使用JDBC数据源事务管理器
+     * 本例为：管理上面配置的dataSourceProxool
+     * DataSourceTransactionManager事务管理器类是由Spring提供的
+     *
+  -->
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<!-- 
+		   * 第1个"dataSource"是DataSourceTransactionManager类的成员变量（属性）名，必须这么写 
+		   * 第2个"dataSourceProxool"是上面配置的Bean的id(即上面配置的DataSource),指定需要管理事务的DataSource
+		-->
+		<property name="dataSource" ref="dataSourceProxool" />  
+          
+	</bean>
+	
+  <!-- 
+     第四步：为事务管理器，配置事务的传播特性
+     * 其实事务的传播特性就是AOP中的Advice
+     * 其中：
+     * 1. id：指定事务传播特性的名称（即指定Advice的名字）
+     * 2. transaction-manager：指定事务管理器（即上面配置的事务管理器的id值即可）
+          即指定为哪个具事务管理器配置事务传播特性
+     * 3. <tx:attributes>：指定传播特性，即指定属性
+     * 
+     * 
+  -->
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="save*" propagation="REQUIRED" />
+			<tx:method name="del*" propagation="REQUIRED" />
+			<tx:method name="update*" propagation="REQUIRED" />
+			<tx:method name="*" read-only="true" />
+		</tx:attributes>
+	</tx:advice>
+
+ <!-- 
+    第五步：配置AOP，即使用AOP的方式将事务进行配置起来
+      * 事务的AOP配置一般采用AOP配置的第二种方式：使用<aop:advisor>
+      * 由于上面已经指定了事务的Advice，所以在<aop:config>中直接引用就可以了，不用再进行配置了
+      * 
+ -->
+	<aop:config>
+		<aop:pointcut id="allService" expression="execution(* com.service..*.*(..))" />
+        <!-- 
+             *定义通知者（即：advisor，它与aspect一样，它是由Pointcut与Advice组成的），一般用于事务的配置
+		     * pointcut-ref：指定要使用的Pointcut，这里指定id即可
+             * advice-ref：指定Advice，这里指定id即可
+		   特别注意：
+		     * 一定要将事务控制加入到业务逻辑层，而不要加到Dao层（数据访问层）
+		     * 在实际项目开发中，一般将事务控制加到：业务逻辑层，而不是加到数据访问层!
+		 -->	
+		<aop:advisor id="serviceAdvice" advice-ref="txAdvice" pointcut-ref="allService" />
+	</aop:config>
+
+
+    <!-- 
+           配置对MyBatis的Mapper.xml文件和Mapper.java接口的扫描，用于生成代理对象
+          使用MapperScannerConfigurer类可以实现批量扫描Mapper.xml文件和Mapper.java接口，并可以自动将扫描出的Mapper接口生成代理对象并且注册在Spring的IOC容器中。
+          【注意】：
+            （1）一定要将mapper.java和mapper.xml映射文件的名称保持一致，且放在一个包中
+            （2）自动扫描生成的代理对象的bean的id属性值为：mapper接口的类名，但类名的首字母为小写，如：Mapper接口的类名为"UserCustomMapper"，
+                    那么自动生成的代理对象的bean的id属性值为"userCustomMapper"，所以在引用时要注意名称。
+           （3）"basePackage"属性：用于指定扫描的包，如果要扫描多个包，各个包使用英文的逗号进行分隔
+           （4）"sqlSessionFactoryBeanName"属性：用于注入所使用的SqlSessionFactory对象，但是这里需要注意使用"value"属性注入，而不是使用"ref"属性注入，
+                   这是因为在配置文件中，使用了"<context:xxx/>"标签进行扫描包以及导入其它的文件（参见本文件开头部分），因为"ref"属性的注入时机要比"<context:xxx/>"标签
+                   运行的早，所以如果使用"ref"属性进行依赖注入的话，则导致由于"<context:xxx/>"标签的功能未运行，而"ref"属性注入的bean此时还没有生成，因此就会抛出异常。
+                   该属性的值为另一个bean的id属性值
+           （5）如果使用MapperScannerConfigurer可以实现批量扫描Mapper接口，因此MyBatis的SqlMapConfig.xml文件中的<mapper>配置标签就可以再配置对Mapper.xml文件和Mapper接口的扫描了
+    -->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+       <property name="basePackage" value="com.dao.mapper"></property>
+       <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>
+	</bean>
+
+</beans>
